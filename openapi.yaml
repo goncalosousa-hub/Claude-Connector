@@ -1,0 +1,73 @@
+openapi: 3.0.3
+info:
+  title: OutSystems Claude Bridge
+  version: 0.1.0
+  description: Serviço que liga uma app OutSystems à API do Claude. Importar em "Consume REST API".
+servers:
+  - url: http://localhost:8787
+paths:
+  /v1/chat:
+    post:
+      operationId: Chat
+      summary: Envia uma mensagem (ou o resultado de uma ação) e recebe a resposta do Claude.
+      parameters:
+        - in: header
+          name: X-Proxy-Key
+          required: false
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ChatRequest" }
+      responses:
+        "200":
+          description: Resposta do Claude
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChatResponse" }
+components:
+  schemas:
+    ChatRequest:
+      type: object
+      properties:
+        message: { type: string, description: Pergunta do utilizador (primeira chamada). }
+        toolResult: { $ref: "#/components/schemas/ToolResult" }
+        conversation: { type: string, description: Valor "conversation" devolvido na chamada anterior. }
+        system: { type: string, description: Instruções opcionais para o Claude. }
+        actions:
+          type: array
+          items: { $ref: "#/components/schemas/Action" }
+    ToolResult:
+      type: object
+      properties:
+        toolUseId: { type: string }
+        result: { type: string, description: Resultado da ação (texto ou JSON serializado). }
+        isError: { type: boolean }
+    Action:
+      type: object
+      properties:
+        name: { type: string, description: "Nome da ação, ex.: GetPendingOrders" }
+        description: { type: string, description: O que a ação faz, para o Claude decidir quando a usar. }
+        parameters:
+          type: array
+          items: { $ref: "#/components/schemas/ActionParameter" }
+    ActionParameter:
+      type: object
+      properties:
+        name: { type: string }
+        type: { type: string, description: "string, number, integer ou boolean" }
+        description: { type: string }
+        required: { type: boolean }
+    ChatResponse:
+      type: object
+      properties:
+        status: { type: string, description: "answer, action_required ou refused" }
+        text: { type: string }
+        action:
+          type: object
+          properties:
+            toolUseId: { type: string }
+            name: { type: string }
+            inputJson: { type: string, description: Argumentos da ação em JSON. }
+        conversation: { type: string }
