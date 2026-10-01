@@ -7,6 +7,8 @@
 // opaco ("conversation") para a app não ter de modelar blocos da API.
 
 import http from "node:http";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import Anthropic from "@anthropic-ai/sdk";
 
 const PORT = Number(process.env.PORT ?? 8787);
@@ -119,6 +121,7 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-if (process.argv[1] === new URL(import.meta.url).pathname) {
+// Arranca o servidor só quando o ficheiro é executado diretamente (não nos testes).
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   server.listen(PORT, () => console.log(`OutSystems ↔ Claude a ouvir em :${PORT} (modelo ${MODEL})`));
 }
