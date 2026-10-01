@@ -12,7 +12,7 @@ ANTHROPIC_API_KEY=sk-ant-... PROXY_KEY=um-segredo npm start   # porta 8787
 npm test                                                     # testa o ciclo com uma API falsa
 ```
 
-Variáveis: `ANTHROPIC_API_KEY` (obrigatória), `PROXY_KEY` (segredo que o OutSystems envia no header `X-Proxy-Key`), `CLAUDE_MODEL` (por omissão `claude-opus-5-5`), `PORT`.
+Variáveis: `ANTHROPIC_API_KEY` (obrigatória, exceto em modo MOCK), `MOCK=1` (responde sem chamar a API nem gastar crédito: pede sempre a primeira ação da lista com valores `exemplo` e depois ecoa o resultado; serve para montar o lado OutSystems), `PROXY_KEY` (segredo que o OutSystems envia no header `X-Proxy-Key`), `CLAUDE_MODEL` (por omissão `claude-opus-5-5`), `PORT`.
 
 O OutSystems Cloud precisa de chegar ao serviço por HTTPS público (por exemplo num serviço como o Render, ou com um túnel tipo ngrok durante testes).
 

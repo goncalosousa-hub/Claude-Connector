@@ -18,7 +18,23 @@ const DEFAULT_SYSTEM =
   "És um assistente integrado numa aplicação OutSystems. Responde em português. " +
   "Quando precisares de dados ou quiseres fazer algo na aplicação, usa as ações disponíveis.";
 
-const client = new Anthropic(); // lê ANTHROPIC_API_KEY do ambiente
+// MOCK=1 responde sem chamar a API (grátis), para montar o lado OutSystems.
+const MOCK = process.env.MOCK === "1";
+const client = MOCK ? null : new Anthropic(); // lê ANTHROPIC_API_KEY do ambiente
+
+// Imita a API: pede a primeira ação disponível e, quando recebe o resultado, responde.
+function mockResponse({ messages, tools }) {
+  const last = messages.at(-1).content;
+  if (Array.isArray(last) && last[0].type === "tool_result") {
+    return { stop_reason: "end_turn", content: [{ type: "text", text: `[MOCK] A ação devolveu: ${last[0].content}` }] };
+  }
+  if (tools?.length) {
+    const tool = tools[0];
+    const input = Object.fromEntries(Object.keys(tool.input_schema.properties).map((k) => [k, "exemplo"]));
+    return { stop_reason: "tool_use", content: [{ type: "tool_use", id: `toolu_mock_${Date.now()}`, name: tool.name, input }] };
+  }
+  return { stop_reason: "end_turn", content: [{ type: "text", text: `[MOCK] Recebi: ${last}` }] };
+}
 
 // Converte a lista simples de ações (fácil de montar no OutSystems) em tools.
 function toTools(actions = []) {
@@ -60,7 +76,7 @@ export async function chat(body) {
   }
 
   const tools = toTools(body.actions);
-  const response = await client.beta.messages.create({
+  const params = {
     model: MODEL,
     max_tokens: 16000,
     system: body.system || DEFAULT_SYSTEM,
@@ -71,7 +87,8 @@ export async function chat(body) {
     // Se o modelo recusar por política, a API tenta automaticamente outro modelo.
     betas: ["server-side-fallback-2026-07-01"],
     fallbacks: "default",
-  });
+  };
+  const response = MOCK ? mockResponse(params) : await client.beta.messages.create(params);
 
   // Guarda a resposta completa (inclui blocos de thinking) para a próxima volta.
   messages.push({ role: "assistant", content: response.content });
@@ -123,5 +140,5 @@ const server = http.createServer(async (req, res) => {
 
 // Arranca o servidor só quando o ficheiro é executado diretamente (não nos testes).
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  server.listen(PORT, () => console.log(`OutSystems ↔ Claude a ouvir em :${PORT} (modelo ${MODEL})`));
+  server.listen(PORT, () => console.log(`OutSystems ↔ Claude a ouvir em :${PORT} (${MOCK ? "modo MOCK, sem chamar a API" : `modelo ${MODEL}`})`));
 }
